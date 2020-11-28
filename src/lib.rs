@@ -31,11 +31,10 @@ mod tests {
             let client_options = match aw!(mongodb::options::ClientOptions::parse(MONGODB_URL)) {
                 Ok(co) => co,
                 Err(e) => {
-                    println!();
                     panic!(
                         "failed to parse mongodb url into client options: {:?}\
-                    \n*** Warning: make sure mongoDB is running at {}\
-                    \n***          use: $ docker run --rm -p 27017:27017 mongo:latest",
+                        \n*** Warning: make sure mongoDB is running at {}\
+                        \n***          use: $ docker run --rm -p 27017:27017 mongo:latest",
                         e, MONGODB_URL
                     )
                 }
