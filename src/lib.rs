@@ -78,9 +78,10 @@ mod tests {
     #[test]
     fn should_store_and_retrieve_user() {
         const EMAIL: &str = "a@example.com";
+        const NAME: &str = "Shaun";
 
         let mut users_repo = FIXTURE.new_repository(COLLECTION_NAME.to_string());
-        if let Err(e) = users_repo.store(User::new_random("Sean", EMAIL.to_string())) {
+        if let Err(e) = users_repo.store(User::new_random(NAME, EMAIL.to_string())) {
             panic!("failed to store user: {}", e);
         }
         let users: Vec<User> = users_repo.find_all();
@@ -88,7 +89,7 @@ mod tests {
             EMAIL,
             users
                 .iter()
-                .find(|u| u.email.as_str() == EMAIL)
+                .find(|u| u.name.as_str() == NAME)
                 .unwrap()
                 .email
                 .as_str()
@@ -98,9 +99,16 @@ mod tests {
     #[test]
     fn should_find_user_using_the_user_repository_trait_extension() {
         const EMAIL: &str = "b@example.com";
+        const NAME: &str = "Sean";
 
         let mut users_repo = FIXTURE.new_repository(COLLECTION_NAME.to_string());
-        if let Err(e) = users_repo.store(User::new_random("Sean", EMAIL.to_string())) {
+        if let Err(e) = users_repo.store(User::new_random(NAME, EMAIL.to_string())) {
+            panic!("failed to store user: {}", e);
+        }
+        if let Err(e) = users_repo.store(User::new_random(
+            "Other User",
+            "otheremail@example.com".to_string(),
+        )) {
             panic!("failed to store user: {}", e);
         }
         let user: User = match users_repo.find_by_email(EMAIL.to_string()) {
