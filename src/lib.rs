@@ -1,14 +1,15 @@
 pub mod mongo;
 pub mod primitives;
+mod user;
 
 #[cfg(test)]
 mod tests {
     use crate::{
         mongo,
-        primitives::{AggregateReadRepository, AggregateWriteRepository, RootAggregate, ID},
+        primitives::{AggregateReadRepository, AggregateWriteRepository},
+        user::{ReadRepository, User},
     };
     use lazy_static;
-    use serde::{Deserialize, Serialize};
 
     const MONGODB_URL: &str = "mongodb://0.0.0.0:27017";
     const MONGODB_TEST_DATABASE: &str = "my-cool-app";
@@ -68,19 +69,6 @@ mod tests {
         static ref FIXTURE: Fixture = Fixture::new();
     }
 
-    #[derive(Clone, Debug, Serialize, Deserialize)]
-    struct User {
-        id: ID,
-        name: String,
-        age: i16,
-    }
-
-    impl RootAggregate for User {
-        fn id(&self) -> &ID {
-            &self.id
-        }
-    }
-
     #[test]
     fn should_find_no_users_by_default() {
         let users_repo = FIXTURE.new_repository(COLLECTION_NAME.to_string());
@@ -90,18 +78,38 @@ mod tests {
 
     #[test]
     fn should_store_and_retrieve_user() {
-        const NAME: &str = "Sean";
+        const EMAIL: &str = "a@example.com";
 
         let mut users_repo = FIXTURE.new_repository(COLLECTION_NAME.to_string());
-        if let Err(e) = users_repo.store(User {
-            id: ID::new_v4(),
-            name: NAME.to_string(),
-            age: 125,
-        }) {
+        if let Err(e) = users_repo.store(User::new_random("Sean", EMAIL.to_string())) {
             panic!("failed to store user: {}", e);
         }
         let users: Vec<User> = users_repo.find_all();
-        assert_eq!(1, users.len());
-        assert_eq!(NAME, users[0].name.as_str());
+        assert_eq!(
+            EMAIL,
+            users
+                .iter()
+                .find(|u| u.email.as_str() == EMAIL)
+                .unwrap()
+                .email
+                .as_str()
+        );
+    }
+
+    #[test]
+    fn should_find_user_using_the_user_repository_trait_extension() {
+        const EMAIL: &str = "b@example.com";
+
+        let mut users_repo = FIXTURE.new_repository(COLLECTION_NAME.to_string());
+        if let Err(e) = users_repo.store(User::new_random("Sean", EMAIL.to_string())) {
+            panic!("failed to store user: {}", e);
+        }
+        let user: User = match users_repo.find_by_email(EMAIL.to_string()) {
+            Ok(u) => u,
+            Err(e) => {
+                panic!("failed to find_by_email: {}", e);
+            }
+        };
+        assert_eq!(EMAIL, user.email.as_str());
     }
 }

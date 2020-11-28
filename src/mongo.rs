@@ -8,6 +8,8 @@ use crate::primitives::{
     AggregateReadRepository, AggregateWriteRepository, RepositoryReadError, RepositoryWriteError,
     RootAggregate,
 };
+use crate::user;
+use crate::user::User;
 
 pub struct Repository {
     pub db: String,
@@ -123,6 +125,27 @@ impl<RA: RootAggregate> AggregateReadRepository<RA> for Repository {
                 println!("*** {:?}", e);
                 results
             }
+        }
+    }
+}
+
+impl user::ReadRepository for Repository {
+    fn find_by_email(&self, email: String) -> Result<User, RepositoryReadError> {
+        let unknown_entity_err = RepositoryReadError::UnknownEntity(email.to_string());
+        let coll = self
+            .client
+            .database(self.db.as_str())
+            .collection(self.collection.as_str());
+        let filter = doc! {"email": email};
+        match coll.find_one(filter, None) {
+            Ok(d) => match d {
+                Some(document) => match mongodb::bson::from_bson::<User>(Bson::from(document)) {
+                    Ok(agg) => Ok(agg),
+                    Err(_) => Err(unknown_entity_err),
+                },
+                None => Err(unknown_entity_err),
+            },
+            Err(_e) => Err(unknown_entity_err),
         }
     }
 }
